@@ -19,12 +19,12 @@ def apply_filter(feat, filter):
     num_sequences = feat.shape[1] if feat.dim() == 5 else 1
 
     if multiple_filters:
-        scores = F.conv2d(feat.view(num_images, -1, feat.shape[-2], feat.shape[-1]), filter.view(-1, *filter.shape[-3:]),
+        scores = F.conv2d(feat.reshape(num_images, -1, feat.shape[-2], feat.shape[-1]), filter.view(-1, *filter.shape[-3:]),
                           padding=padding, groups=num_sequences)
 
         return scores.view(num_images, num_sequences, -1, scores.shape[-2], scores.shape[-1])
 
-    scores = F.conv2d(feat.view(num_images, -1, feat.shape[-2], feat.shape[-1]), filter,
+    scores = F.conv2d(feat.reshape(num_images, -1, feat.shape[-2], feat.shape[-1]), filter,
                       padding=padding, groups=num_sequences)
 
     return scores.view(num_images, num_sequences, scores.shape[-2], scores.shape[-1])
@@ -59,7 +59,7 @@ def _apply_feat_transpose_v1(feat, input, filter_ksz):
     trans_pad = [sz + ksz//2 - ksz for sz, ksz in zip(feat_sz, filter_ksz)]
 
     filter_grad = F.conv_transpose2d(input.flip((2, 3)).view(1, -1, input.shape[-2], input.shape[-1]),
-                                     feat.view(-1, feat.shape[-3], feat.shape[-2], feat.shape[-1]),
+                                     feat.reshape(-1, feat.shape[-3], feat.shape[-2], feat.shape[-1]),
                                      padding=trans_pad, groups=num_images * num_sequences)
 
     return filter_grad.view(num_images, num_sequences, -1, filter_grad.shape[-2], filter_grad.shape[-1]).sum(dim=0)
@@ -79,16 +79,16 @@ def _apply_feat_transpose_v2(feat, input, filter_ksz):
     trans_pad = [(ksz-1)//2 for ksz in filter_ksz]
 
     if multiple_filters:
-        filter_grad = F.conv2d(input.view(-1, num_filters, input.shape[-2], input.shape[-1]).permute(1,0,2,3),
-                               feat.view(-1, 1, feat.shape[-2], feat.shape[-1]),
+        filter_grad = F.conv2d(input.reshape(-1, num_filters, input.shape[-2], input.shape[-1]).permute(1,0,2,3),
+                               feat.reshape(-1, 1, feat.shape[-2], feat.shape[-1]),
                                padding=trans_pad, groups=num_images * num_sequences)
 
         if num_images == 1:
             return filter_grad.view(num_filters, num_sequences, -1, filter_grad.shape[-2], filter_grad.shape[-1]).flip((3,4)).permute(1,0,2,3,4)
         return filter_grad.view(num_filters, num_images, num_sequences, -1, filter_grad.shape[-2], filter_grad.shape[-1]).sum(dim=1).flip((3,4)).permute(1,0,2,3,4)
 
-    filter_grad = F.conv2d(input.view(1, -1, input.shape[-2], input.shape[-1]),
-                                     feat.view(-1, 1, feat.shape[-2], feat.shape[-1]),
+    filter_grad = F.conv2d(input.reshape(1, -1, input.shape[-2], input.shape[-1]),
+                                     feat.reshape(-1, 1, feat.shape[-2], feat.shape[-1]),
                                      padding=trans_pad, groups=num_images * num_sequences)
 
     return filter_grad.view(num_images, num_sequences, -1, filter_grad.shape[-2], filter_grad.shape[-1]).sum(dim=0).flip((2,3))
@@ -107,8 +107,8 @@ def _apply_feat_transpose_v3(feat, input, filter_ksz):
 
     trans_pad = [ksz//2 for  ksz in filter_ksz]
 
-    filter_grad = F.conv2d(feat.view(-1, feat.shape[-3], feat.shape[-2], feat.shape[-1]).permute(1,0,2,3),
-                           input.view(-1, 1, input.shape[-2], input.shape[-1]),
+    filter_grad = F.conv2d(feat.reshape(-1, feat.shape[-3], feat.shape[-2], feat.shape[-1]).permute(1,0,2,3),
+                           input.reshape(-1, 1, input.shape[-2], input.shape[-1]),
                            padding=trans_pad, groups=num_images * num_sequences)
     # print("filter_grad shape: {}".format(filter_grad.shape))  # [256, num_images * num_sequences * num_filters, 4, 4]
 

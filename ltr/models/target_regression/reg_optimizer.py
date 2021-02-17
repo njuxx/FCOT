@@ -92,8 +92,8 @@ class RegSteepestDescentGN(nn.Module):
             # print("scores_grad shape: {}".format(scores_grad.shape))    # [num_images, num_sequences, 4, 72, 72]
 
             # Compute optimal step length
-            alpha_num = (weights_grad * weights_grad).view(num_sequences, -1).sum(dim=1)
-            alpha_den = ((scores_grad * scores_grad).view(num_images, num_sequences, -1).sum(dim=(0,2)) + reg_weight * alpha_num).clamp(1e-8)
+            alpha_num = (weights_grad * weights_grad).reshape(num_sequences, -1).sum(dim=1)
+            alpha_den = ((scores_grad * scores_grad).reshape(num_images, num_sequences, -1).sum(dim=(0,2)) + reg_weight * alpha_num).clamp(1e-8)
             # print("alpha_num: {}, alpha_den: {}".format(alpha_num, alpha_den))
             alpha = alpha_num / alpha_den
 
